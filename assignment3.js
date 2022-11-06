@@ -17,6 +17,9 @@ export class Assignment3 extends Scene {
             circle: new defs.Regular_2D_Polygon(1, 15),
             // TODO:  Fill in as many additional shape instances as needed in this key/value table.
             //        (Requirement 1)
+            sun: new defs.Subdivision_Sphere(4),
+            p1: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
+
         };
 
         // *** Materials
@@ -28,6 +31,10 @@ export class Assignment3 extends Scene {
             ring: new Material(new Ring_Shader()),
             // TODO:  Fill in as many additional material objects as needed in this key/value table.
             //        (Requirement 4)
+            sun: new Material(new defs.Phong_Shader(),
+                {ambient: 1, diffusivity: 0, specularity: 0, color: hex_color("#ffffff")}),
+            p1: new Material(new defs.Phong_Shader(),
+                {ambient: 0, diffusivity: 1, specularity: 0, color: hex_color("#8c8c8c")}),
         }
 
         this.initial_camera_location = Mat4.look_at(vec3(0, 10, 20), vec3(0, 0, 0), vec3(0, 1, 0));
@@ -58,20 +65,38 @@ export class Assignment3 extends Scene {
         program_state.projection_transform = Mat4.perspective(
             Math.PI / 4, context.width / context.height, .1, 1000);
 
+        const t = program_state.animation_time / 1000, dt = program_state.animation_delta_time / 1000;
+        let sun_scale = 2 - Math.cos(2 * Math.PI * t / 10);
+        const sun_color = color(1,sun_scale / 3,sun_scale / 3,1);
+
         // TODO: Create Planets (Requirement 1)
         // this.shapes.[XXX].draw([XXX]) // <--example
 
         // TODO: Lighting (Requirement 2)
-        const light_position = vec4(0, 5, 5, 1);
+        const light_position = vec4(0, 0, 0, 1);
         // The parameters of the Light are: position, color, size
-        program_state.lights = [new Light(light_position, color(1, 1, 1, 1), 1000)];
+        program_state.lights = [new Light(light_position, sun_color, 10 ** sun_scale)];
 
         // TODO:  Fill in matrix operations and drawing code to draw the solar system scene (Requirements 3 and 4)
-        const t = program_state.animation_time / 1000, dt = program_state.animation_delta_time / 1000;
         const yellow = hex_color("#fac91a");
         let model_transform = Mat4.identity();
 
-        this.shapes.torus.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
+        let sun_transform = Mat4.identity();
+        sun_transform = sun_transform.times(Mat4.scale(sun_scale,sun_scale,sun_scale));
+
+        //this.shapes.torus.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
+        this.shapes.sun.draw(context, program_state, sun_transform, this.materials.sun.override({color: sun_color}));
+        this.draw_planets(context, program_state, t);
+    }
+
+    draw_planets(context, program_state, t) {
+        let p1_angle = 2 * Math.PI * t / 10;
+
+        let model_transform = Mat4.identity();
+        model_transform = model_transform.times(Mat4.rotation(p1_angle, 0,1,0));
+        model_transform = model_transform.times(Mat4.translation(5,0,0));
+
+        this.shapes.p1.draw(context, program_state, model_transform, this.materials.p1);
     }
 }
 
